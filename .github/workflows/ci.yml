@@ -40,6 +40,36 @@ jobs:
       - name: Run tests
         run: scripts/test
 
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.10.0"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5.0.3
+        with:
+          mode: simulation
+          run: uv run pytest tests/ --codspeed
+
   build:
     runs-on: ubuntu-latest
     steps:
