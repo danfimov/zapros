@@ -4,7 +4,7 @@ import time
 import warnings
 from typing import TYPE_CHECKING, Literal, TypedDict, Union, cast, overload
 
-import h11
+import h11_mypyc as h11
 from pywhatwgurl import URL
 
 from zapros._constants import DEFAULT_READ_SIZE, default_ssl_context
