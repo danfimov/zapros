@@ -5,6 +5,7 @@ from zapros import Response
 from zapros._constants import CHUNK_SIZE
 from zapros._decoders import ByteChunker
 from zapros._handlers._std._sync_http1 import Http1Connection
+from zapros._io._base import BaseNetworkStream
 from zapros._models import Request as ZaprosRequest
 from zapros._sync_pool import Http1ConnectionPool
 
@@ -41,7 +42,7 @@ RESPONSE_BODY_SIZES = [
 ]
 
 
-class FakeStream:
+class FakeStream(BaseNetworkStream):
     """A BaseNetworkStream that replays canned bytes and discards writes.
 
     read() hands back DEFAULT_READ_SIZE-ish slices so the caller goes round the
@@ -66,9 +67,6 @@ class FakeStream:
 
     def close(self) -> None:
         pass
-
-    def selected_alpn_protocol(self) -> None:
-        return None
 
 
 @pytest.fixture(scope="session", params=HEADER_COUNTS)
