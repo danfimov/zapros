@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import AsyncIterator
 
-import h11
+import h11_mypyc as h11
 from typing_extensions import override
 
 from zapros._async_pool import AsyncHttp1ConnectionPool
