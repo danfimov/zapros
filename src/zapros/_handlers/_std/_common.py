@@ -12,7 +12,7 @@ from zapros._errors import ConnectionError as _ConnError, TotalTimeoutError
 from zapros._handlers._common import remaining_timeout
 from zapros._headers import Connection
 
-from ..._models import Headers, Request
+from ..._models import Request
 
 
 class BrokenConnectionError(ConnectionError):
@@ -185,7 +185,7 @@ def remaining_timeout_or_raise(deadline: float | None) -> float | None:
 
 
 def connection_wants_close(headers: list[tuple[str, str]]) -> bool:
-    connection_values = Headers(headers).getall("connection")
+    connection_values = [value for key, value in headers if key.casefold() == "connection"]
 
     if not connection_values:
         return False
