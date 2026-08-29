@@ -113,6 +113,9 @@ select = ["E", "F", "W", "I", "G"]
 [tool.ruff.lint.isort]
 combine-as-imports = true
 
+[tool.ruff.format]
+exclude = ["docs/**", "skills/**"]
+
 [tool.pyright]
 strict = ["src"]
 exclude = [
