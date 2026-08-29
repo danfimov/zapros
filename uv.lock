@@ -1890,9 +1890,9 @@ name = "zapros"
 version = "0.17.0"
 source = { editable = "." }
 dependencies = [
-    { name = "ada-url" },
+    { name = "ada-url", marker = "sys_platform != 'emscripten'" },
     { name = "h11" },
-    { name = "pywhatwgurl" },
+    { name = "pywhatwgurl", marker = "sys_platform == 'emscripten'" },
     { name = "typing-extensions" },
 ]
 
@@ -1931,7 +1931,6 @@ dev = [
     { name = "pytest-codspeed" },
     { name = "pytest-pyodide", version = "0.58.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pytest-pyodide", version = "0.59.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pywhatwgurl" },
     { name = "ruff" },
     { name = "ry-cli" },
     { name = "sniffio" },
@@ -1942,13 +1941,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ada-url", specifier = ">=4.0.0" },
+    { name = "ada-url", marker = "sys_platform != 'emscripten'", specifier = ">=4.0.0" },
     { name = "brotlicffi", marker = "extra == 'brotli'", specifier = ">=1.2.0" },
     { name = "h11", specifier = ">=0.16.0" },
     { name = "h2", marker = "extra == 'http2'", specifier = ">=4.3.0" },
     { name = "hishel", marker = "extra == 'caching'", specifier = ">=1.1.9" },
     { name = "pyreqwest", marker = "python_full_version >= '3.11' and extra == 'pyreqwest'" },
-    { name = "pywhatwgurl", specifier = ">=0.1.0" },
+    { name = "pywhatwgurl", marker = "sys_platform == 'emscripten'", specifier = ">=0.1.0" },
     { name = "socksio", marker = "extra == 'socks'", specifier = ">=1.0.0" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
     { name = "wsproto", marker = "extra == 'websocket'", specifier = ">=1.2.0" },
@@ -1967,7 +1966,6 @@ dev = [
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-codspeed", specifier = ">=5.0.3" },
     { name = "pytest-pyodide" },
-    { name = "pywhatwgurl", specifier = ">=0.1.0" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "ry-cli", specifier = "==0.4.0" },
     { name = "sniffio", specifier = ">=1.3.1" },
