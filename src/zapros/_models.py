@@ -18,7 +18,7 @@ from typing import (
 )
 
 import typing_extensions
-from pywhatwgurl import URL, URLSearchParams
+from pywhatwgurl import URLSearchParams
 from typing_extensions import TypedDict, deprecated
 
 from zapros._errors import AsyncSyncMismatchError, ResponseNotRead, StatusCodeError, StreamExhausted
@@ -26,6 +26,7 @@ from zapros._io._base import AsyncBaseNetworkStream, BaseNetworkStream
 from zapros._multidict import (
     CIMultiDict,
 )
+from zapros._url import URL
 from zapros._utils import get_host_header_value
 
 if TYPE_CHECKING:

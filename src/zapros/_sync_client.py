@@ -16,7 +16,6 @@ from typing import (
 )
 
 from pywhatwgurl import (
-    URL,
     URLSearchParams,
 )
 from typing_extensions import Self
@@ -25,6 +24,7 @@ from zapros._handlers._sync_base import (
     BaseHandler,
     BaseMiddleware,
 )
+from zapros._url import URL
 
 from ._models import (
     ClosableStream,
