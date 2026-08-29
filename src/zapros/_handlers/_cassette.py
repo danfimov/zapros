@@ -73,7 +73,7 @@ def normalize_url(url: URL) -> str:
     copy = URL(url.href)
     params = copy.search_params
     params.sort()
-    copy.search = params.to_string()
+    copy.search = str(params)
     return copy.href
 
 
