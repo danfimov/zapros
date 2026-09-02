@@ -3,11 +3,25 @@ import pytest
 from zapros import Response
 from zapros._constants import CHUNK_SIZE
 from zapros._decoders import ByteChunker
+from zapros._handlers._std._common import connection_wants_close
 
 
 @pytest.fixture(scope="session")
 def body() -> bytes:
     return b"x" * (4 * 1024 * 1024)
+
+
+@pytest.fixture(scope="session")
+def response_headers() -> list[tuple[str, str]]:
+    return [
+        ("Content-Type", "application/x-amz-json-1.0"),
+        ("Content-Length", "204800"),
+        ("Date", "Fri, 29 Aug 2026 00:00:00 GMT"),
+        ("Server", "Server"),
+        ("Connection", "keep-alive"),
+        ("x-amzn-RequestId", "0f1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9"),
+        ("x-amz-crc32", "1234567890"),
+    ]
 
 
 @pytest.fixture(scope="session")
@@ -51,3 +65,8 @@ def test_bench_bytechunker_single_feed(single_feed_body: bytes) -> None:
 def test_bench_iter_bytes_identity_e2e(body_chunks: list[bytes], body: bytes) -> None:
     response = Response(200, content=iter(body_chunks))
     assert sum(len(c) for c in response.iter_bytes()) == len(body)
+
+
+@pytest.mark.benchmark
+def test_bench_connection_wants_close(response_headers: list[tuple[str, str]]) -> None:
+    assert connection_wants_close(response_headers) is False
