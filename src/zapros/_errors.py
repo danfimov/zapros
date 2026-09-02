@@ -135,6 +135,13 @@ class HandlerClosedError(ZaprosError, RuntimeError):
     pass
 
 
+class PyreqwestNotInstalledError(ZaprosError, ImportError):
+    """Raised when a pyreqwest handler is instantiated but pyreqwest is not installed."""
+
+    def __init__(self, message: str = "pyreqwest is not installed. Install it with: pip install pyreqwest") -> None:
+        super().__init__(message)
+
+
 class HeaderParseError(ZaprosError):
     """Raised when an error occurs while parsing a header value."""
 

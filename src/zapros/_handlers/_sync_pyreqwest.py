@@ -5,6 +5,9 @@ from collections.abc import (
 )
 from typing import TYPE_CHECKING
 
+from .._errors import (
+    PyreqwestNotInstalledError,
+)
 from .._models import (
     ClosableStream,
     Request,
@@ -70,7 +73,7 @@ class PyreqwestHandler(BaseHandler):
         client: SyncClientBuilder | None = None,
     ) -> None:
         if SyncClientBuilder is None:  # type: ignore[reportPossiblyUnboundVariable]
-            raise ImportError("pyreqwest is not installed. Install it with: pip install pyreqwest")
+            raise PyreqwestNotInstalledError
         builder = SyncClientBuilder() if client is None else client
         builder = builder.gzip(False).deflate(False).brotli(False).zstd(False)
         self._client = builder.build()

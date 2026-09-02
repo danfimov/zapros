@@ -13,12 +13,12 @@ else:
     except ImportError:
         trio = None
 
-
 from .._errors import (
     ConnectionError,
     ConnectTimeoutError,
     DNSResolutionError,
     HandlerClosedError,
+    PyreqwestNotInstalledError,
     ReadError,
     ReadTimeoutError,
     SSLError,
@@ -38,17 +38,13 @@ else:
         ssl = None
 
 
-class _PyreqwestNotInstalledError(Exception):
-    """Placeholder used in place of pyreqwest's ClientClosedError when pyreqwest is unavailable."""
-
-
 if sys.version_info >= (3, 11):
     try:
         from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
     except ImportError:
-        PyreqwestClientClosedError = _PyreqwestNotInstalledError
+        PyreqwestClientClosedError = PyreqwestNotInstalledError
 else:
-    PyreqwestClientClosedError = _PyreqwestNotInstalledError
+    PyreqwestClientClosedError = PyreqwestNotInstalledError
 
 
 _CONNECT_TIMEOUT_ERRNOS = {60, 110}
@@ -232,13 +228,7 @@ def map_asyncio_read_exceptions() -> Iterator[None]:
 
 @contextlib.contextmanager
 def map_pyreqwest_client_exceptions() -> Iterator[None]:
-    """
-    Map pyreqwest client lifecycle exceptions to Zapros errors.
-
-    Note:
-        This is intended for wrapping request dispatch on a ``pyreqwest`` client,
-        which rejects requests once the client has been closed.
-    """
+    """Map pyreqwest client lifecycle exceptions to Zapros errors."""
     try:
         yield
     except PyreqwestClientClosedError as error:

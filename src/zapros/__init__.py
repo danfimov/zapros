@@ -29,6 +29,7 @@ from ._errors import (
     ConnectTimeoutError as ConnectTimeoutError,
     HandlerClosedError as HandlerClosedError,
     PoolTimeoutError as PoolTimeoutError,
+    PyreqwestNotInstalledError as PyreqwestNotInstalledError,
     ReadError as ReadError,
     ReadTimeoutError as ReadTimeoutError,
     SSLError as SSLError,
