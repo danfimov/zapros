@@ -129,6 +129,12 @@ class WriteError(ZaprosError):
     pass
 
 
+class HandlerClosedError(ZaprosError, RuntimeError):
+    """Raised when a request is sent through a handler that has already been closed."""
+
+    pass
+
+
 class HeaderParseError(ZaprosError):
     """Raised when an error occurs while parsing a header value."""
 

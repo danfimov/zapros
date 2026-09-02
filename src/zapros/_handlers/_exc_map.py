@@ -12,10 +12,22 @@ else:
     except ImportError:
         trio = None
 
+if TYPE_CHECKING:
+    from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
+else:
+    try:
+        from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
+    except ImportError:
+
+        class PyreqwestClientClosedError(Exception):
+            """Placeholder used when pyreqwest is not installed."""
+
+
 from .._errors import (
     ConnectionError,
     ConnectTimeoutError,
     DNSResolutionError,
+    HandlerClosedError,
     ReadError,
     ReadTimeoutError,
     SSLError,
@@ -212,6 +224,21 @@ def map_asyncio_read_exceptions() -> Iterator[None]:
         raise ReadTimeoutError("Read operation timed out") from e
     except OSError as e:
         raise ReadError(f"Read failed: {e}") from e
+
+
+@contextlib.contextmanager
+def map_pyreqwest_client_exceptions() -> Iterator[None]:
+    """
+    Map pyreqwest client lifecycle exceptions to Zapros errors.
+
+    Note:
+        This is intended for wrapping request dispatch on a ``pyreqwest`` client,
+        which rejects requests once the client has been closed.
+    """
+    try:
+        yield
+    except PyreqwestClientClosedError as error:
+        raise HandlerClosedError("Cannot send a request: the handler has been closed") from error
 
 
 def map_connect_exceptions() -> contextlib.AbstractContextManager[None]:

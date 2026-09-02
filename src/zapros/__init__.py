@@ -27,6 +27,7 @@ from ._errors import (
     AsyncSyncMismatchError as AsyncSyncMismatchError,
     ConnectionError as ConnectionError,
     ConnectTimeoutError as ConnectTimeoutError,
+    HandlerClosedError as HandlerClosedError,
     PoolTimeoutError as PoolTimeoutError,
     ReadError as ReadError,
     ReadTimeoutError as ReadTimeoutError,
