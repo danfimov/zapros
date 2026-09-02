@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import sys
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
@@ -11,16 +12,6 @@ else:
         import trio
     except ImportError:
         trio = None
-
-if TYPE_CHECKING:
-    from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
-else:
-    try:
-        from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
-    except ImportError:
-
-        class PyreqwestClientClosedError(Exception):
-            """Placeholder used when pyreqwest is not installed."""
 
 
 from .._errors import (
@@ -45,6 +36,19 @@ else:
     except ImportError:
         socket = None
         ssl = None
+
+
+class _PyreqwestNotInstalledError(Exception):
+    """Placeholder used in place of pyreqwest's ClientClosedError when pyreqwest is unavailable."""
+
+
+if sys.version_info >= (3, 11):
+    try:
+        from pyreqwest.exceptions import ClientClosedError as PyreqwestClientClosedError
+    except ImportError:
+        PyreqwestClientClosedError = _PyreqwestNotInstalledError
+else:
+    PyreqwestClientClosedError = _PyreqwestNotInstalledError
 
 
 _CONNECT_TIMEOUT_ERRNOS = {60, 110}
