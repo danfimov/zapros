@@ -9,7 +9,6 @@ from .._handlers._exc_map import (
     map_asyncio_connect_exceptions,
     map_asyncio_read_exceptions,
     map_asyncio_write_exceptions,
-    map_socket_read_exceptions,
 )
 from ._base import AsyncBaseNetworkStream, AsyncBaseTransport
 
@@ -81,7 +80,7 @@ class AsyncIOStream(AsyncBaseNetworkStream):
 
     async def _pump_incoming(self, timeout: float | None = None) -> None:
         assert self._tls_state is not None
-        with map_socket_read_exceptions():
+        with map_asyncio_read_exceptions():
             if timeout is None:
                 data = await self._tls_state.reader.read(DEFAULT_READ_SIZE)
             else:
@@ -92,7 +91,7 @@ class AsyncIOStream(AsyncBaseNetworkStream):
             else:
                 self._tls_state.incoming_bio.write_eof()
 
-    async def _call_sslobject_method(self, func: Callable[..., T], *args: Any) -> T:
+    async def _call_sslobject_method(self, func: Callable[..., T], *args: Any, read_timeout: float | None = None) -> T:
         assert self._tls_state is not None
         while True:
             try:
@@ -101,7 +100,7 @@ class AsyncIOStream(AsyncBaseNetworkStream):
                 return result
             except ssl.SSLWantReadError:
                 await self._flush_outgoing()
-                await self._pump_incoming()
+                await self._pump_incoming(read_timeout)
             except ssl.SSLWantWriteError:
                 await self._flush_outgoing()
             except (ssl.SSLError, ssl.SSLEOFError) as e:
@@ -109,7 +108,7 @@ class AsyncIOStream(AsyncBaseNetworkStream):
 
     async def read(self, max_bytes: int, timeout: float | None = None) -> bytes:
         if self._tls_state is not None:
-            return await self._call_sslobject_method(self._tls_state.ssl_object.read, max_bytes)
+            return await self._call_sslobject_method(self._tls_state.ssl_object.read, max_bytes, read_timeout=timeout)
 
         with map_asyncio_read_exceptions():
             if timeout is None:

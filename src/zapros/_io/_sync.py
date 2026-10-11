@@ -63,7 +63,7 @@ class SyncStream(BaseNetworkStream):
             else:
                 self._tls_state.incoming_bio.write_eof()
 
-    def _call_sslobject_method(self, func: Callable[..., T], *args: Any) -> T:
+    def _call_sslobject_method(self, func: Callable[..., T], *args: Any, read_timeout: float | None = None) -> T:
         assert self._tls_state is not None
         while True:
             try:
@@ -72,7 +72,7 @@ class SyncStream(BaseNetworkStream):
                 return result
             except ssl.SSLWantReadError:
                 self._flush_outgoing()
-                self._pump_incoming()
+                self._pump_incoming(read_timeout)
             except ssl.SSLWantWriteError:
                 self._flush_outgoing()
             except (ssl.SSLError, ssl.SSLEOFError) as e:
@@ -80,7 +80,7 @@ class SyncStream(BaseNetworkStream):
 
     def read(self, max_bytes: int, timeout: float | None = None) -> bytes:
         if self._tls_state is not None:
-            return self._call_sslobject_method(self._tls_state.ssl_object.read, max_bytes)
+            return self._call_sslobject_method(self._tls_state.ssl_object.read, max_bytes, read_timeout=timeout)
 
         with map_socket_read_exceptions():
             self.sock.settimeout(timeout)
