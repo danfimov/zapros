@@ -15,6 +15,8 @@ else:
 
 CHUNK_SIZE = 16 * 1024
 DEFAULT_READ_SIZE = 1024 * 64
+# How long to wait for a 100 (Continue) response before sending the request body anyway.
+EXPECT_CONTINUE_TIMEOUT = 1.0
 
 
 @functools.cache

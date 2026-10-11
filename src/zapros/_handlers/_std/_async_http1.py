@@ -7,12 +7,13 @@ from typing_extensions import override
 
 from zapros._async_pool import AsyncHttp1ConnectionPool
 from zapros._base_pool import PoolKey
-from zapros._constants import DEFAULT_READ_SIZE
-from zapros._errors import ConnectionError, WriteError
+from zapros._constants import DEFAULT_READ_SIZE, EXPECT_CONTINUE_TIMEOUT
+from zapros._errors import ConnectionError, ReadTimeoutError, WriteError
 from zapros._handlers._common import min_with_optionals
 from zapros._handlers._std._common import (
     BrokenConnectionError,
     connection_wants_close,
+    expects_continue,
     remaining_timeout_or_raise,
     response_has_no_body,
 )
@@ -216,16 +217,38 @@ class AsyncHttp1Connection(AsyncHttpConnection):
         if request.body is not None and not isinstance(request.body, (bytes, AsyncIterator)):
             raise TypeError(f"Unsupported body type: {request.body.__class__.__name__}")
 
-        await self._send_request_body(
-            body=request.body,
-            trailers=request.trailers,
-            write_timeout=write_timeout,
-            deadline=deadline,
-        )
+        status: int | None = None
+        resp_headers: list[tuple[str, str]] = []
+        if request.body and expects_continue(request_headers_list):
+            try:
+                # Any other informational response (e.g. 103 Early Hints) is not an answer yet.
+                while status is None or 101 < status < 200:
+                    status, resp_headers = await self._receive_response_headers(
+                        read_timeout=min_with_optionals(
+                            EXPECT_CONTINUE_TIMEOUT,
+                            min_with_optionals(read_timeout, remaining_timeout_or_raise(deadline)),
+                        ),
+                    )
+            except ReadTimeoutError:
+                # The server stayed silent, so send the body anyway.
+                status = None
 
-        status, resp_headers = await self._receive_response_headers(
-            read_timeout=min_with_optionals(read_timeout, remaining_timeout_or_raise(deadline)),
-        )
+        # A final status here means the server answered instead of sending 100 (Continue): the
+        # body is not sent, and h11 is left mid-request so the connection is not reused.
+        if status is None or status == 100:
+            await self._send_request_body(
+                body=request.body,
+                trailers=request.trailers,
+                write_timeout=write_timeout,
+                deadline=deadline,
+            )
+
+            # Skip informational responses, including a late or unprompted 100 (Continue),
+            # until the final one. A 101 ends the exchange as well and is handled below.
+            while status is None or (100 <= status < 200 and status != 101):
+                status, resp_headers = await self._receive_response_headers(
+                    read_timeout=min_with_optionals(read_timeout, remaining_timeout_or_raise(deadline)),
+                )
 
         if status == 101:
             # h11 reads in DEFAULT_READ_SIZE chunks, so any bytes the peer sent
@@ -350,8 +373,7 @@ class AsyncHttp1Connection(AsyncHttpConnection):
                 continue
 
             if isinstance(event, h11.InformationalResponse):
-                if event.status_code == 101:
-                    return event.status_code, [(k.decode("ascii"), v.decode("latin-1")) for k, v in event.headers]
+                return event.status_code, [(k.decode("ascii"), v.decode("latin-1")) for k, v in event.headers]
 
             if isinstance(event, h11.Response):
                 status = event.status_code

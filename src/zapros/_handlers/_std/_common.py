@@ -193,6 +193,15 @@ def connection_wants_close(headers: list[tuple[str, str]]) -> bool:
     return Connection.from_field_lines(connection_values).has("close")
 
 
+def expects_continue(headers: list[tuple[str, str]]) -> bool:
+    return any(
+        expectation.strip().lower() == "100-continue"
+        for key, value in headers
+        if key.lower() == "expect"
+        for expectation in value.split(",")
+    )
+
+
 def response_has_no_body(method: str, status: int) -> bool:
     if method.upper() == "HEAD":
         return True
