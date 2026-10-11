@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import sys
 from collections.abc import Iterator
@@ -48,6 +49,8 @@ else:
 
 
 _CONNECT_TIMEOUT_ERRNOS = {60, 110}
+# asyncio.TimeoutError is only an alias of the builtin TimeoutError since Python 3.11.
+_ASYNCIO_TIMEOUT_ERRORS = (TimeoutError, asyncio.TimeoutError)
 _CONNECTION_LOST_ERRORS = (
     BrokenPipeError,
     ConnectionResetError,
@@ -93,7 +96,7 @@ def map_asyncio_connect_exceptions() -> Iterator[None]:
     """
     try:
         yield
-    except TimeoutError as e:
+    except _ASYNCIO_TIMEOUT_ERRORS as e:
         raise ConnectTimeoutError("Connection timed out") from e
     except socket.gaierror as e:
         raise DNSResolutionError(f"DNS resolution failed: {e}") from e
@@ -186,7 +189,7 @@ def map_asyncio_write_exceptions() -> Iterator[None]:
     """
     try:
         yield
-    except TimeoutError as e:
+    except _ASYNCIO_TIMEOUT_ERRORS as e:
         raise WriteTimeoutError("Write operation timed out") from e
     except _CONNECTION_LOST_ERRORS as e:
         raise WriteError(f"Connection lost during write: {e}") from e
@@ -220,7 +223,7 @@ def map_trio_read_exceptions() -> Iterator[None]:
 def map_asyncio_read_exceptions() -> Iterator[None]:
     try:
         yield
-    except TimeoutError as e:
+    except _ASYNCIO_TIMEOUT_ERRORS as e:
         raise ReadTimeoutError("Read operation timed out") from e
     except OSError as e:
         raise ReadError(f"Read failed: {e}") from e
