@@ -2,7 +2,7 @@ import pytest
 
 from zapros import Response
 from zapros._constants import CHUNK_SIZE
-from zapros._decoders import ByteChunker
+from zapros._decoders import iter_chunks
 from zapros._handlers._std._common import connection_wants_close
 
 
@@ -47,17 +47,14 @@ def single_feed_body(request: pytest.FixtureRequest, body: bytes) -> bytes:
 
 
 @pytest.mark.benchmark
-def test_bench_bytechunker_stream(body_chunks: list[bytes], body: bytes) -> None:
-    chunker = ByteChunker(CHUNK_SIZE)
-    total = sum(len(chunk) for piece in body_chunks for chunk in chunker.feed(piece))
-    total += len(chunker.flush())
+def test_bench_iter_chunks_stream(body_chunks: list[bytes], body: bytes) -> None:
+    total = sum(len(chunk) for piece in body_chunks for chunk in iter_chunks(piece, CHUNK_SIZE))
     assert total == len(body)
 
 
 @pytest.mark.benchmark
-def test_bench_bytechunker_single_feed(single_feed_body: bytes) -> None:
-    chunker = ByteChunker(CHUNK_SIZE)
-    total = sum(len(c) for c in chunker.feed(single_feed_body)) + len(chunker.flush())
+def test_bench_iter_chunks_single_feed(single_feed_body: bytes) -> None:
+    total = sum(len(c) for c in iter_chunks(single_feed_body, CHUNK_SIZE))
     assert total == len(single_feed_body)
 
 

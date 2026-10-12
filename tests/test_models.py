@@ -694,6 +694,41 @@ class TestResponse:
         chunks = list(response.iter_bytes(chunk_size=5))
         assert all(len(chunk) <= 5 for chunk in chunks)
 
+    def test_response_iter_bytes_yields_small_chunks_as_they_arrive(self):
+        pieces = [b"data: a\n\n", b"data: b\n\n", b"data: c\n\n"]
+        response = Response(200, content=StreamWrapper(iter(pieces)))
+        assert list(response.iter_bytes()) == pieces
+
+    def test_response_iter_bytes_chunk_size_is_upper_bound(self):
+        response = Response(200, content=StreamWrapper(iter([b"ab", b"cdefgh", b"i"])))
+        assert list(response.iter_bytes(chunk_size=4)) == [b"ab", b"cdef", b"gh", b"i"]
+
+    def test_response_iter_raw_yields_small_chunks_as_they_arrive(self):
+        pieces = [b"data: a\n\n", b"data: b\n\n", b"data: c\n\n"]
+        response = Response(200, content=StreamWrapper(iter(pieces)))
+        assert list(response.iter_raw()) == pieces
+
+    def test_response_iter_bytes_gzip_yields_flushed_events_as_they_arrive(self):
+        events = [b"data: a\n\n", b"data: b\n\n", b"data: c\n\n"]
+        compressor = zlib.compressobj(wbits=zlib.MAX_WBITS | 16)
+        pieces = [compressor.compress(event) + compressor.flush(zlib.Z_SYNC_FLUSH) for event in events]
+        pieces.append(compressor.flush())
+        response = Response(200, headers={"Content-Encoding": "gzip"}, content=StreamWrapper(iter(pieces)))
+        assert list(response.iter_bytes()) == events
+
+    @pytest.mark.parametrize("chunk_size", [0, -1])
+    def test_response_iter_rejects_non_positive_chunk_size(self, chunk_size: int):
+        stream = StreamWrapper(iter([b"abcdef", b"gh"]))
+        response = Response(200, content=stream)
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            list(response.iter_bytes(chunk_size=chunk_size))
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            list(response.iter_raw(chunk_size=chunk_size))
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            list(response.iter_text(chunk_size=chunk_size))
+        assert not response.consumed
+        assert response.read() == b"abcdefgh"
+
     def test_response_iter_bytes_gzip_decompression(self):
         original = b"Hello, World!"
         compressed = gzip.compress(original)
@@ -784,6 +819,16 @@ class TestResponse:
         chunks = [chunk async for chunk in response.async_iter_bytes(chunk_size=5)]
         assert all(len(chunk) <= 5 for chunk in chunks)
 
+    async def test_response_async_iter_bytes_yields_small_chunks_as_they_arrive(self):
+        pieces = [b"data: a\n\n", b"data: b\n\n", b"data: c\n\n"]
+
+        async def gen():
+            for piece in pieces:
+                yield piece
+
+        response = Response(200, content=AsyncStreamWrapper(gen()))
+        assert [chunk async for chunk in response.async_iter_bytes()] == pieces
+
     async def test_response_async_iter_bytes_gzip_decompression(self):
         original = b"Hello, World!"
         compressed = gzip.compress(original)
@@ -853,6 +898,28 @@ class TestResponse:
         chunks = [chunk async for chunk in response.async_iter_raw()]
         result = b"".join(chunks)
         assert result == compressed
+
+    async def test_response_async_iter_raw_yields_small_chunks_as_they_arrive(self):
+        pieces = [b"data: a\n\n", b"data: b\n\n", b"data: c\n\n"]
+
+        async def gen():
+            for piece in pieces:
+                yield piece
+
+        response = Response(200, content=AsyncStreamWrapper(gen()))
+        assert [chunk async for chunk in response.async_iter_raw()] == pieces
+
+    @pytest.mark.parametrize("chunk_size", [0, -1])
+    async def test_response_async_iter_rejects_non_positive_chunk_size(self, chunk_size: int):
+        async def gen():
+            yield b"abcdef"
+
+        response = Response(200, content=AsyncStreamWrapper(gen()))
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            [chunk async for chunk in response.async_iter_bytes(chunk_size=chunk_size)]
+        with pytest.raises(ValueError, match="chunk_size must be a positive integer"):
+            [chunk async for chunk in response.async_iter_raw(chunk_size=chunk_size)]
+        assert not response.consumed
 
     async def test_response_async_iter_raw_none_content(self):
         response = Response(200)

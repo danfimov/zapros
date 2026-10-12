@@ -287,11 +287,11 @@ with Client() as client:
 
 :::
 
-Custom chunk size (default 8192 bytes):
+Chunks are yielded as soon as data arrives, so they can be smaller than `chunk_size`. `chunk_size` is only an upper bound on the size of each chunk (default 16384 bytes):
 
 ```python
 for chunk in response.iter_bytes(chunk_size=4096):
-    process(chunk)
+    process(chunk)  # at most 4096 bytes
 ```
 
 ### Stream caching

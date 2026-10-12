@@ -6,12 +6,12 @@ import pytest
 
 from zapros._decoders import (
     SUPPORTED_DECODERS,
-    ByteChunker,
     DecodingError,
     DeflateDecoder,
     GZipDecoder,
     IdentityDecoder,
     MultiDecoder,
+    iter_chunks,
 )
 
 
@@ -277,56 +277,27 @@ def test_multi_decoder_bounds_output():
     assert max(len(p) for p in pieces) <= 4096
 
 
-def test_byte_chunker():
-    chunker = ByteChunker(chunk_size=10)
+def test_iter_chunks_splits_oversized_data():
+    chunks = list(iter_chunks(b"Hello, World! This is a test.", chunk_size=10))
 
-    data = b"Hello, World! This is a test."
-    chunks = list(chunker.feed(data))
-
-    assert len(chunks) == 2
-    assert chunks[0] == b"Hello, Wor"
-    assert chunks[1] == b"ld! This i"
-
-    remaining = chunker.flush()
-    assert remaining == b"s a test."
+    assert chunks == [b"Hello, Wor", b"ld! This i", b"s a test."]
 
 
-def test_byte_chunker_exact_size():
-    chunker = ByteChunker(chunk_size=10)
-
+def test_iter_chunks_exact_size():
     data = b"1234567890"
-    chunks = list(chunker.feed(data))
+    chunks = list(iter_chunks(data, chunk_size=10))
 
-    assert len(chunks) == 1
-    assert chunks[0] == b"1234567890"
-
-    remaining = chunker.flush()
-    assert remaining == b""
+    assert chunks == [data]
+    assert chunks[0] is data
 
 
-def test_byte_chunker_multiple_feeds():
-    chunker = ByteChunker(chunk_size=10)
-
-    all_chunks = []
-    all_chunks.extend(chunker.feed(b"Hello, "))
-    all_chunks.extend(chunker.feed(b"World! "))
-    all_chunks.extend(chunker.feed(b"This is a test."))
-
-    assert len(all_chunks) == 2
-    assert all_chunks[0] == b"Hello, Wor"
-    assert all_chunks[1] == b"ld! This i"
-
-    remaining = chunker.flush()
-    assert remaining == b"s a test."
+def test_iter_chunks_does_not_hold_small_data():
+    assert list(iter_chunks(b"Hello, ", chunk_size=10)) == [b"Hello, "]
+    assert list(iter_chunks(b"World! ", chunk_size=10)) == [b"World! "]
 
 
-def test_byte_chunker_empty():
-    chunker = ByteChunker(chunk_size=10)
-    chunks = list(chunker.feed(b""))
-    assert chunks == []
-
-    remaining = chunker.flush()
-    assert remaining == b""
+def test_iter_chunks_empty():
+    assert list(iter_chunks(b"", chunk_size=10)) == []
 
 
 def test_supported_decoders_registry():

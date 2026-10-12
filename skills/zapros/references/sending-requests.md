@@ -212,7 +212,7 @@ response.request                # originating Request, or None
 
 ### Streaming responses
 
-Use `client.stream(...)` as a context manager so the connection is released even on early `break` or exception. Iterate with `async_iter_bytes` / `async_iter_text` / `async_iter_raw` (sync: `iter_bytes` / `iter_text` / `iter_raw`); default `chunk_size=16384`.
+Use `client.stream(...)` as a context manager so the connection is released even on early `break` or exception. Iterate with `async_iter_bytes` / `async_iter_text` / `async_iter_raw` (sync: `iter_bytes` / `iter_text` / `iter_raw`). Chunks are yielded as soon as data arrives; `chunk_size` (default 16384) is only an upper bound on each chunk, so chunks can be smaller.
 
 ```python
 async with AsyncClient() as client:

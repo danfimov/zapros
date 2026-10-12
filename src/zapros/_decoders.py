@@ -225,38 +225,14 @@ class TextDecoder:
         return self.decoder.decode(b"", True)
 
 
-class ByteChunker:
-    def __init__(self, chunk_size: int) -> None:
-        self._chunk_size = chunk_size
-        self._buffer = bytearray()
-
-    def feed(self, data: bytes) -> Iterator[bytes]:
-        if not data:
-            return
-        size, data_length, view, position = self._chunk_size, len(data), memoryview(data), 0
-        try:
-            if self._buffer:
-                take = min(size - len(self._buffer), data_length)
-                self._buffer += view[:take]
-                position = take
-                if len(self._buffer) < size:
-                    return
-                yield bytes(self._buffer)
-                self._buffer.clear()
-            while data_length - position >= size:
-                yield bytes(view[position : position + size])
-                position += size
-            if position < data_length:
-                self._buffer += view[position:]
-        finally:
-            view.release()
-
-    def flush(self) -> bytes:
-        if self._buffer:
-            result = bytes(self._buffer)
-            self._buffer.clear()
-            return result
-        return b""
+def iter_chunks(data: bytes, chunk_size: int) -> Iterator[bytes]:
+    """Yield `data` in pieces of at most `chunk_size` bytes, never holding any back."""
+    if len(data) <= chunk_size:
+        if data:
+            yield data
+        return
+    for position in range(0, len(data), chunk_size):
+        yield data[position : position + chunk_size]
 
 
 SUPPORTED_DECODERS: dict[str, Callable[[int], ContentDecoder]] = {

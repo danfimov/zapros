@@ -41,12 +41,12 @@ from ._constants import (
 from ._decoders import (
     ACCEPT_ENCODING,
     SUPPORTED_DECODERS,
-    ByteChunker,
     ContentDecoder,
     DecodingError,
     IdentityDecoder,
     MultiDecoder,
     TextDecoder,
+    iter_chunks,
 )
 
 MAX_DECODE_LAYERS = 5
@@ -594,31 +594,24 @@ class Response:
     ) -> AsyncIterator[bytes]:
         if chunk_size is None:
             chunk_size = CHUNK_SIZE
+        elif chunk_size < 1:
+            raise ValueError("chunk_size must be a positive integer")
 
         if self._decoded_content is not None:
-            chunker = ByteChunker(chunk_size)
-            for chunk in chunker.feed(self._decoded_content):
+            for chunk in iter_chunks(self._decoded_content, chunk_size):
                 yield chunk
-            remaining = chunker.flush()
-            if remaining:
-                yield remaining
             return
 
         decoder = self._get_content_decoder(chunk_size)
-        chunker = ByteChunker(chunk_size)
 
         async for raw_chunk in self._async_iter_source():
             for decoded_piece in decoder.decode(raw_chunk):
-                for chunk in chunker.feed(decoded_piece):
+                for chunk in iter_chunks(decoded_piece, chunk_size):
                     yield chunk
 
         for decoded_piece in decoder.flush():
-            for chunk in chunker.feed(decoded_piece):
+            for chunk in iter_chunks(decoded_piece, chunk_size):
                 yield chunk
-
-        remaining = chunker.flush()
-        if remaining:
-            yield remaining
 
     def iter_bytes(  # unasync: generated
         self,
@@ -626,31 +619,24 @@ class Response:
     ) -> Iterator[bytes]:
         if chunk_size is None:
             chunk_size = CHUNK_SIZE
+        elif chunk_size < 1:
+            raise ValueError("chunk_size must be a positive integer")
 
         if self._decoded_content is not None:
-            chunker = ByteChunker(chunk_size)
-            for chunk in chunker.feed(self._decoded_content):
+            for chunk in iter_chunks(self._decoded_content, chunk_size):
                 yield chunk
-            remaining = chunker.flush()
-            if remaining:
-                yield remaining
             return
 
         decoder = self._get_content_decoder(chunk_size)
-        chunker = ByteChunker(chunk_size)
 
         for raw_chunk in self._iter_source():
             for decoded_piece in decoder.decode(raw_chunk):
-                for chunk in chunker.feed(decoded_piece):
+                for chunk in iter_chunks(decoded_piece, chunk_size):
                     yield chunk
 
         for decoded_piece in decoder.flush():
-            for chunk in chunker.feed(decoded_piece):
+            for chunk in iter_chunks(decoded_piece, chunk_size):
                 yield chunk
-
-        remaining = chunker.flush()
-        if remaining:
-            yield remaining
 
     async def async_iter_raw(  # unasync: generate
         self,
@@ -658,14 +644,12 @@ class Response:
     ) -> AsyncIterator[bytes]:
         if chunk_size is None:
             chunk_size = CHUNK_SIZE
+        elif chunk_size < 1:
+            raise ValueError("chunk_size must be a positive integer")
 
-        chunker = ByteChunker(chunk_size)
         async for raw_chunk in self._async_iter_source():
-            for chunk in chunker.feed(raw_chunk):
+            for chunk in iter_chunks(raw_chunk, chunk_size):
                 yield chunk
-        remaining = chunker.flush()
-        if remaining:
-            yield remaining
 
     def iter_raw(  # unasync: generated
         self,
@@ -673,14 +657,12 @@ class Response:
     ) -> Iterator[bytes]:
         if chunk_size is None:
             chunk_size = CHUNK_SIZE
+        elif chunk_size < 1:
+            raise ValueError("chunk_size must be a positive integer")
 
-        chunker = ByteChunker(chunk_size)
         for raw_chunk in self._iter_source():
-            for chunk in chunker.feed(raw_chunk):
+            for chunk in iter_chunks(raw_chunk, chunk_size):
                 yield chunk
-        remaining = chunker.flush()
-        if remaining:
-            yield remaining
 
     async def _async_iter_source(self) -> AsyncIterator[bytes]:  # unasync: generate
         if self._content is None:
